@@ -3,16 +3,18 @@ using IRunes.Data;
 using IRunes.Models;
 using SIS.HTTP.Requests;
 using SIS.HTTP.Responses;
+using SIS.MvcFramework;
+using SIS.MvcFramework.Attributes.Http;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace IRunes.App.Controllers
 {
-    public class TracksController : BaseController
+    public class TracksController : Controller
     {
         public IHttpResponse Create(IHttpRequest httpRequest)
         {
-            if (!this.IsLoggedIn(httpRequest))
+            if (!this.IsLoggedIn())
             {
                 return this.Redirect("/Users/Login");
             }
@@ -24,9 +26,10 @@ namespace IRunes.App.Controllers
 
         }
 
+        [HttpPost]
         public IHttpResponse CreateConfirm(IHttpRequest httpRequest)
         {
-            if (!this.IsLoggedIn(httpRequest))
+            if (!this.IsLoggedIn())
             {
                 return this.Redirect("/Users/Login");
             }
@@ -67,7 +70,7 @@ namespace IRunes.App.Controllers
 
         public IHttpResponse Details(IHttpRequest httpRequest)
         {
-            if (!this.IsLoggedIn(httpRequest))
+            if (!this.IsLoggedIn())
             {
                 return this.Redirect("/Users/Login");
             }
