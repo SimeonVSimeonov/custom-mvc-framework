@@ -6,9 +6,11 @@ namespace SIS.HTTP.Headers
     {
         public const string Cookie = "Cookie";
 
+        public const string ContentType = "Content-Type";
+
         public const string ContentLength = "Content-Length";
 
-        public const string ContentDisposition = "ContentDisposition";
+        public const string ContentDisposition = "Content-Disposition";
 
         public HttpHeader(string key, string value)
         {

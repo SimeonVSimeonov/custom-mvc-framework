@@ -1,39 +1,28 @@
 ﻿using SIS.HTTP.Requests;
-using SIS.HTTP.Responses;
+using SIS.MvcFramework.Extensions;
 using SIS.MvcFramework.Identity;
 using SIS.MvcFramework.Result;
-using SIS.WebServer.Result;
-using System.Collections.Generic;
-using System.IO;
+using SIS.MvcFramework.ViewEngine;
 using System.Runtime.CompilerServices;
 
 namespace SIS.MvcFramework
 {
     public abstract class Controller
     {
+        private readonly IViewEngine viewEngine;
+
         protected Controller()
         {
-            this.ViewData = new Dictionary<string, object>();
+            this.viewEngine = new SisViewEngine();
         }
 
-        protected Dictionary<string, object> ViewData;
-
+        // TODO: Refactor this
         public Principal User =>
             this.Request.Session.ContainsParameter("principal")
-            ? (Principal)this.Request.Session.GetParameter("principal")
+            ? (Principal) this.Request.Session.GetParameter("principal")
             : null;
 
         public IHttpRequest Request { get; set; }
-
-        private string ParseTemplate(string viewContent)
-        {
-            foreach (var param in this.ViewData)
-            {
-                viewContent = viewContent.Replace($"@Model.{param.Key}", param.Value.ToString());
-            }
-
-            return viewContent;
-        }
 
         protected bool IsLoggedIn()
         {
@@ -57,17 +46,23 @@ namespace SIS.MvcFramework
 
         protected ActionResult View([CallerMemberName] string view = null)
         {
-            string controllerName = GetType().Name.Replace("Controller", string.Empty);
+            return this.View<object>(null, view);
+        }
+
+        protected ActionResult View<T>(T model = null, [CallerMemberName] string view = null)
+            where T : class
+        {
+            string controllerName = this.GetType().Name.Replace("Controller", string.Empty);
             string viewName = view;
 
-            string viewContent = File.ReadAllText("Views/" + controllerName + "/" + viewName + ".html");
-            viewContent = ParseTemplate(viewContent);
+            string viewContent = System.IO.File.ReadAllText("Views/" + controllerName + "/" + viewName + ".html");
+            viewContent = this.viewEngine.GetHtml(viewContent, model, this.User);
 
-            //string layoutContent = File.ReadAllText("Views/_Layout.html");
-            //layoutContent = ParseTemplate(layoutContent);
-            //layoutContent = layoutContent.Replace("@RenderBody()", viewContent);
+            string layoutContent = System.IO.File.ReadAllText("Views/_Layout.html");
+            layoutContent = this.viewEngine.GetHtml(layoutContent, model, this.User);
+            layoutContent = layoutContent.Replace("@RenderBody()", viewContent);
 
-            var htmlResult = new HtmlResult(viewContent);
+            var htmlResult = new HtmlResult(layoutContent);
 
             return htmlResult;
         }
@@ -75,6 +70,26 @@ namespace SIS.MvcFramework
         protected ActionResult Redirect(string url)
         {
             return new RedirectResult(url);
+        }
+
+        protected ActionResult Xml(object obj)
+        {
+            return new XmlResult(obj.ToXml());
+        }
+
+        protected ActionResult Json(object obj)
+        {
+            return new JsonResult(obj.ToJson());
+        }
+
+        protected ActionResult File(byte[] fileContent)
+        {
+            return new FileResult(fileContent);
+        }
+
+        protected ActionResult NotFound(string message = "")
+        {
+            return new NotFoundResult(message);
         }
     }
 }

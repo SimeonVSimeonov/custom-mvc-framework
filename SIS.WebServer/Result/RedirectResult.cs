@@ -1,8 +1,7 @@
 ﻿using SIS.HTTP.Enums;
 using SIS.HTTP.Headers;
-using SIS.MvcFramework.Result;
 
-namespace SIS.WebServer.Result
+namespace SIS.MvcFramework.Result
 {
     public class RedirectResult : ActionResult
     {

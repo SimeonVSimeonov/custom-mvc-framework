@@ -1,11 +1,8 @@
 ﻿using SIS.HTTP.Enums;
 using SIS.HTTP.Headers;
 using SIS.HTTP.Responses;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace SIS.WebServer.Result
+namespace SIS.MvcFramework.Result
 {
     public class InlineResourceResult : HttpResponse
     {
