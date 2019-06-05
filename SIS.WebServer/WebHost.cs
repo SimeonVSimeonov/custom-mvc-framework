@@ -7,8 +7,10 @@ using SIS.MvcFramework.Attributes.Action;
 using SIS.MvcFramework.Attributes.Http;
 using SIS.MvcFramework.Attributes.Security;
 using SIS.MvcFramework.Result;
+using SIS.MvcFramework.Sessions;
 using SIS.WebServer;
 using SIS.WebServer.Routing;
+using SIS.WebServer.Sessions;
 
 namespace SIS.MvcFramework
 {
@@ -17,10 +19,13 @@ namespace SIS.MvcFramework
         public static void Start(IMvcApplication application)
         {
             IServerRoutingTable serverRoutingTable = new ServerRoutingTable();
-            AutoRegisterRoutes(application, serverRoutingTable);
+            IHttpSessionStorage httpSessionStorage = new HttpSessionStorage();
+
             application.ConfugureServices();
+
+            AutoRegisterRoutes(application, serverRoutingTable);
             application.Configure(serverRoutingTable);
-            Server server = new Server(8000, serverRoutingTable);
+            Server server = new Server(8000, serverRoutingTable, httpSessionStorage);
             server.Run();
         }
 

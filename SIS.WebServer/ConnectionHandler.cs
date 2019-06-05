@@ -4,7 +4,9 @@ using SIS.HTTP.Enums;
 using SIS.HTTP.Exceptions;
 using SIS.HTTP.Requests;
 using SIS.HTTP.Responses;
+using SIS.HTTP.Sessions;
 using SIS.MvcFramework.Result;
+using SIS.MvcFramework.Sessions;
 using SIS.WebServer.Routing;
 using SIS.WebServer.Sessions;
 using System;
@@ -22,13 +24,17 @@ namespace SIS.WebServer
 
         private readonly IServerRoutingTable serverRoutingTable;
 
-        public ConnectionHandler(Socket client, IServerRoutingTable serverRoutingTable)
+        private readonly IHttpSessionStorage httpSessionStorage;
+
+        public ConnectionHandler(Socket client, IServerRoutingTable serverRoutingTable,
+            IHttpSessionStorage httpSessionStorage)
         {
             CoreValidator.ThrowIfNull(client, nameof(client));
             CoreValidator.ThrowIfNull(serverRoutingTable, nameof(serverRoutingTable));
 
             this.client = client;
             this.serverRoutingTable = serverRoutingTable;
+            this.httpSessionStorage = httpSessionStorage;
         }
 
         private async Task<IHttpRequest> ReadRequestAsync()
@@ -96,29 +102,38 @@ namespace SIS.WebServer
 
         private string SetRequestSession(IHttpRequest httpRequest)
         {
-            string sessionId = null;
-
             if (httpRequest.Cookies.ContainsCookie(HttpSessionStorage.SessionCookieKey))
             {
-                var cookie = httpRequest.Cookies.GetCookie(HttpSessionStorage.SessionCookieKey);
-                sessionId = cookie.Value;
-            }
-            else
-            {
-                sessionId = Guid.NewGuid().ToString();
+                var cookie = httpRequest
+                    .Cookies
+                    .GetCookie(HttpSessionStorage.SessionCookieKey);
+
+                string sessionId = cookie.Value;
+
+                if (this.httpSessionStorage.ContainsSession(sessionId))
+                {
+                    httpRequest.Session = this.httpSessionStorage.GetSession(sessionId);
+                }
             }
 
-            httpRequest.Session = HttpSessionStorage.GetSession(sessionId);
-            return httpRequest.Session.Id;
+            if (httpRequest.Session == null)
+            {
+                string sessionId = Guid.NewGuid().ToString();
+
+                httpRequest.Session = this.httpSessionStorage.GetSession(sessionId);
+            }
+
+            return httpRequest.Session?.Id;
         }
 
         private void SetResponseSession(IHttpResponse httpResponse, string sessionId)
         {
-            if (sessionId != null)
+            IHttpSession responseSession = this.httpSessionStorage.GetSession(sessionId);
+
+            if (responseSession.IsNew)
             {
-                httpResponse.Cookies
-                    .AddCookie(new HttpCookie(HttpSessionStorage
-                        .SessionCookieKey, sessionId));
+                responseSession.IsNew = false;
+                httpResponse.AddCookie(new HttpCookie(HttpSessionStorage.SessionCookieKey, responseSession.Id));
             }
         }
 
@@ -150,11 +165,11 @@ namespace SIS.WebServer
             }
             catch (BadRequestException e)
             {
-                httpResponse = new TextResult(e.Message, HttpResponseStatusCode.BadRequest);
+                httpResponse = new TextResult(e.ToString(), HttpResponseStatusCode.BadRequest);
             }
             catch (Exception e)
             {
-                httpResponse = new TextResult(e.Message, HttpResponseStatusCode.InternalServerError);
+                httpResponse = new TextResult(e.ToString(), HttpResponseStatusCode.InternalServerError);
             }
             this.PrepareResponse(httpResponse);
 

@@ -11,9 +11,12 @@ namespace SIS.HTTP.Sessions
         {
             this.Id = id;
             this.sessionParameters = new Dictionary<string, object>();
+            this.IsNew = true;
         }
 
         public string Id { get; }
+
+        public bool IsNew { get; set; }
 
         public object GetParameter(string parameterName)
         {
