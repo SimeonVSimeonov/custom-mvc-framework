@@ -7,6 +7,7 @@ using SIS.HTTP.Sessions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 
 namespace SIS.HTTP.Requests
 {
@@ -16,8 +17,8 @@ namespace SIS.HTTP.Requests
         {
             CoreValidator.ThrowIfNullOrEmpty(requestString, nameof(requestString));
 
-            this.FormData = new Dictionary<string,object>();
-            this.QueryData = new Dictionary<string, object>();
+            this.FormData = new Dictionary<string, ISet<string>>();
+            this.QueryData = new Dictionary<string, ISet<string>>();
             this.Headers = new HttpHeaderCollection();
             this.Cookies = new HttpCookieCollection();
 
@@ -28,9 +29,9 @@ namespace SIS.HTTP.Requests
 
         public string Url { get; private set; }
 
-        public Dictionary<string, object> FormData { get; }
+        public Dictionary<string, ISet<string>> FormData { get; }
 
-        public Dictionary<string, object> QueryData { get; }
+        public Dictionary<string, ISet<string>> QueryData { get; }
 
         public IHttpHeaderCollection Headers { get; }
 
@@ -111,12 +112,20 @@ namespace SIS.HTTP.Requests
         {
             if (this.HasQueryString())
             {
-                this.Url.Split('?', '#')[1]
+                var parameters = this.Url.Split('?', '#')[1]
                     .Split('&')
                     .Select(plainQueryParameter => plainQueryParameter.Split('='))
-                    .ToList()
-                    .ForEach(queryParameterKeyValuePair =>
-                        this.QueryData.Add(queryParameterKeyValuePair[0], queryParameterKeyValuePair[1]));
+                    .ToList();
+
+                foreach (var parameter in parameters)
+                {
+                    if (!this.QueryData.ContainsKey(parameter[0]))
+                    {
+                        this.QueryData.Add(parameter[0], new HashSet<string>());
+                    }
+
+                    this.QueryData[parameter[0]].Add(WebUtility.UrlDecode(parameter[1]));
+                }
             }
         }
 
