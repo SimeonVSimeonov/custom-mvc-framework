@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace SIS.MvcFramework.DependencyContainer
 {
@@ -12,7 +11,8 @@ namespace SIS.MvcFramework.DependencyContainer
         private readonly IDictionary<Type, Type>
             dependencyContainer = new ConcurrentDictionary<Type, Type>();
 
-        public void Add<TSource, TDestination>() where TDestination : TSource
+        public void Add<TSource, TDestination>()
+            where TDestination : TSource
         {
             this.dependencyContainer[typeof(TSource)] = typeof(TDestination);
         }

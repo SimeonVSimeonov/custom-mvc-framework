@@ -52,7 +52,7 @@ namespace IRunes.App.Controllers
             return this.View();
         }
 
-        [HttpPost(ActionName = "Register")]
+        [HttpPost]
         public ActionResult Register(string username, string password, string confirmPassword, string email)
         {
             if (password != confirmPassword)

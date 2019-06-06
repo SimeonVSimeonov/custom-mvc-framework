@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace IRunes.Models
 {
@@ -8,7 +6,7 @@ namespace IRunes.Models
     {
         public Album()
         {
-            this.Tracks = new HashSet<Track>();
+            this.Tracks = new List<Track>();
         }
 
         public string Id { get; set; }
@@ -19,7 +17,7 @@ namespace IRunes.Models
 
         public decimal Price { get; set; }
 
-        public ICollection<Track> Tracks { get; set; }
+        public List<Track> Tracks { get; set; }
 
     }
 }

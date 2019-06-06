@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Web;
 
 namespace SIS.HTTP.Requests
 {
@@ -92,7 +93,7 @@ namespace SIS.HTTP.Requests
 
         private void ParseRequestUrl(string[] requestLineParams)
         {
-            this.Url = requestLineParams[1];
+            this.Url = HttpUtility.UrlDecode(requestLineParams[1]);
         }
 
         private void ParseRequestPath()
@@ -149,7 +150,7 @@ namespace SIS.HTTP.Requests
                         this.FormData.Add(key, new HashSet<string>());
                     }
 
-                    ((ISet<string>)this.FormData[key]).Add(value);
+                    this.FormData[key].Add(WebUtility.UrlDecode(value));
                 }                
             }
         }

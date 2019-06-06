@@ -11,6 +11,7 @@ using SIS.MvcFramework.Sessions;
 using SIS.WebServer;
 using SIS.WebServer.Routing;
 using SIS.WebServer.Sessions;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -88,6 +89,7 @@ namespace SIS.MvcFramework
             var controllerInstance = serviceProvider.CreateInstance(controllerType) as Controller;
             controllerInstance.Request = request;
 
+            // Security Authorization - TODO: Refactor this
             var controllerPrincipal = controllerInstance.User;
             var authorizeAttribute = action.GetCustomAttributes()
                 .LastOrDefault(a => a.GetType() == typeof(AuthorizeAttribute)) as AuthorizeAttribute;
@@ -105,6 +107,18 @@ namespace SIS.MvcFramework
             {
                 ISet<string> httpDataValue = TryGetHttpParameter(request, parameter.Name);
 
+                if (parameter.ParameterType.GetInterfaces().Any(
+                    i => i.IsGenericType &&
+                    i.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                    && parameter.ParameterType != typeof(string))
+                {
+
+                    var collection = httpDataValue.Select(x => System.Convert.ChangeType(x,
+                        parameter.ParameterType.GenericTypeArguments.First()));
+                    parameterValues.Add(collection);
+                    continue;
+                }
+
                 try
                 {
                     string httpStringValue = httpDataValue.FirstOrDefault();
@@ -113,15 +127,33 @@ namespace SIS.MvcFramework
                 }
                 catch
                 {
-
                     var paramaterValue = System.Activator.CreateInstance(parameter.ParameterType);
                     var properties = parameter.ParameterType.GetProperties();
+
                     foreach (var property in properties)
                     {
                         ISet<string> propertyHttpDataValue = TryGetHttpParameter(request, property.Name);
-                        var firstValue = propertyHttpDataValue.FirstOrDefault();
-                        var propertyValue = System.Convert.ChangeType(firstValue, property.PropertyType);
-                        property.SetMethod.Invoke(paramaterValue, new object[] { propertyValue });
+
+                        if (property.PropertyType.GetInterfaces().Any(
+                            i => i.IsGenericType &&
+                                 i.GetGenericTypeDefinition() == typeof(IEnumerable<>)) &&
+                            property.PropertyType != typeof(string))
+                        {
+                            var propertyValue = (IList)System.Activator.CreateInstance(property.PropertyType);
+
+                            foreach (var parameterElement in propertyHttpDataValue)
+                            {
+                                propertyValue.Add(parameterElement);
+                            }
+
+                            property.SetMethod.Invoke(paramaterValue, new object[] { propertyValue });
+                        }
+                        else
+                        {
+                            var firstValue = propertyHttpDataValue.FirstOrDefault();
+                            var propertyValue = System.Convert.ChangeType(firstValue, property.PropertyType);
+                            property.SetMethod.Invoke(paramaterValue, new object[] { propertyValue });
+                        }
                     }
 
                     parameterValues.Add(paramaterValue);
